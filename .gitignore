@@ -1,4 +1,5 @@
 .env
 user_chat_ids.json
 venv/
+__pycache__/
 discord_logs/
