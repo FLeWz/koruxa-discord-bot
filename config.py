@@ -81,7 +81,7 @@ class Config:
             task_timeout=int(
                 os.getenv(
                     "TASK_TIMEOUT",
-                    "600",
+                    "1200",
                 )
             ),
 
