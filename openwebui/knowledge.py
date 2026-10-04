@@ -20,6 +20,7 @@ class KnowledgeDirectoryManager:
         self.knowledge_id = knowledge_id
 
         self.store = JsonStore(mapping_file)
+
         self.directory_ids = {
             str(key): str(value)
             for key, value
@@ -59,7 +60,7 @@ class KnowledgeDirectoryManager:
         data = await self.client.post(
             session,
             (
-                f"/api/v1/knowledge/"
+                f"/v1/knowledge/"
                 f"{self.knowledge_id}/dirs/create"
             ),
             payload,
@@ -117,9 +118,10 @@ class KnowledgeDirectoryManager:
     async def ensure_user_directory(
         self,
         session: aiohttp.ClientSession,
-        user: discord.abc.User,
+        user_id: int,
+        username: str,
     ) -> str:
-        key = str(user.id)
+        key = str(user_id)
 
         existing = self.directory_ids.get(
             key
@@ -133,8 +135,8 @@ class KnowledgeDirectoryManager:
         )
 
         name = (
-            f"{user.id} "
-            f"{self.safe_username(user.name)}"
+            f"{user_id} "
+            f"{self.safe_username(username)}"
         )
 
         directory_id = (
@@ -155,7 +157,7 @@ class KnowledgeDirectoryManager:
 
     async def upload_user_log(
         self,
-        session,
+        session: aiohttp.ClientSession,
         user_id: int,
         username: str,
         file_path: Path,
@@ -203,7 +205,7 @@ class KnowledgeDirectoryManager:
     ):
         url = (
             f"{self.client.base_url}"
-            "/api/v1/files/"
+            "/v1/files/"
         )
 
         headers = {
@@ -219,7 +221,7 @@ class KnowledgeDirectoryManager:
             "file",
             file_path.read_bytes(),
             filename=file_path.name,
-            content_type="text/markdown",
+            content_type="text/plain",
         )
 
         form.add_field(
@@ -229,7 +231,9 @@ class KnowledgeDirectoryManager:
                     "knowledge_id": (
                         self.knowledge_id
                     ),
-                    "directory_id": directory_id,
+                    "directory_id": (
+                        directory_id
+                    ),
                 }
             ),
         )
@@ -239,21 +243,43 @@ class KnowledgeDirectoryManager:
             headers=headers,
             data=form,
         ) as response:
-            data = await self.client.read_json(
-                response
-            )
+
+            if response.status >= 400:
+                body = await response.text()
+
+                allow = response.headers.get(
+                    "Allow"
+                )
+
+                details = (
+                    f"HTTP {response.status}: "
+                    f"{body}"
+                )
+
+                if allow:
+                    details += (
+                        f" "
+                        f"(Allow: {allow})"
+                    )
+
+                raise RuntimeError(details)
+
+            data = await response.json()
 
         file_id = (
             data.get("id")
             or data.get("file", {}).get("id")
         )
 
+        if not file_id:
+            raise RuntimeError(
+                "Open WebUI upload succeeded "
+                "but did not return a file ID: "
+                f"{data!r}"
+            )
+
         print(
             f"Uploaded {file_path}"
-            + (
-                f" as file {file_id}"
-                if file_id
-                else ""
-            )
+            f" as file {file_id}"
         )
 

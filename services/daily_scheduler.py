@@ -1,11 +1,10 @@
 import asyncio
+from datetime import datetime, time, timedelta
 
 import aiohttp
 
 from mylogger.discord_logger import DiscordLogger
-from openwebui.knowledge import (
-    KnowledgeDirectoryManager,
-)
+from openwebui.knowledge import KnowledgeDirectoryManager
 
 
 class DailyLogScheduler:
@@ -35,12 +34,11 @@ class DailyLogScheduler:
                 try:
                     await self.knowledge.upload_user_log(
                         session,
-                        self._fake_user(
-                            user_id,
-                            username,
-                        ),
+                        user_id,
+                        username,
                         path,
                     )
+
                 except Exception as exc:
                     print(
                         f"Failed to upload "
@@ -50,8 +48,7 @@ class DailyLogScheduler:
                     )
 
             for path in (
-                self.logger
-                .get_old_aggregate_logs()
+                self.logger.get_old_aggregate_logs()
             ):
                 try:
                     await (
@@ -61,6 +58,7 @@ class DailyLogScheduler:
                             path,
                         )
                     )
+
                 except Exception as exc:
                     print(
                         f"Failed to upload "
@@ -74,16 +72,13 @@ class DailyLogScheduler:
             now = self.logger.now()
 
             tomorrow = (
-                now.date().toordinal() + 1
+                now.date() + timedelta(days=1)
             )
 
-            next_midnight = (
-                __import__("datetime")
-                .datetime
-                .fromordinal(tomorrow)
-                .replace(
-                    tzinfo=self.logger.timezone
-                )
+            next_midnight = datetime.combine(
+                tomorrow,
+                time.min,
+                tzinfo=self.logger.timezone,
             )
 
             seconds = (
@@ -107,20 +102,4 @@ class DailyLogScheduler:
                     f"{type(exc).__name__}: "
                     f"{exc}"
                 )
-
-    @staticmethod
-    def _fake_user(
-        user_id: int,
-        username: str,
-    ):
-        """
-        Lightweight object providing the attributes
-        required by KnowledgeDirectoryManager.
-        """
-
-        class User:
-            id = user_id
-            name = username
-
-        return User()
 
