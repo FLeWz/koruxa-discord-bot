@@ -74,7 +74,75 @@ class DiscordLogger:
             f"{date_string}.md"
         )
 
-    def format_message(
+    @staticmethod
+    def format_user(
+        user: discord.abc.User,
+    ) -> str:
+        return (
+            f"{user.display_name} "
+            f"(`{user.name}`, "
+            f"Discord ID "
+            f"`{user.id}`)"
+        )
+
+    async def get_replied_message(
+        self,
+        message: discord.Message,
+    ) -> discord.Message | None:
+        reference = message.reference
+
+        if reference is None:
+            return None
+
+        if isinstance(
+            reference.resolved,
+            discord.Message,
+        ):
+            return reference.resolved
+
+        if reference.message_id is None:
+            return None
+
+        try:
+            return await message.channel.fetch_message(
+                reference.message_id
+            )
+
+        except (
+            discord.NotFound,
+            discord.Forbidden,
+            discord.HTTPException,
+        ):
+            return None
+
+    async def format_reply_to(
+        self,
+        message: discord.Message,
+    ) -> str:
+        reference = message.reference
+
+        if reference is None:
+            return "None"
+
+        replied_message = await self.get_replied_message(
+            message
+        )
+
+        if replied_message is not None:
+            return self.format_user(
+                replied_message.author
+            )
+
+        if reference.message_id is not None:
+            return (
+                f"Unknown user "
+                f"(Discord message ID "
+                f"`{reference.message_id}`)"
+            )
+
+        return "Unknown"
+
+    async def format_message(
         self,
         message: discord.Message,
         timestamp: datetime,
@@ -94,27 +162,31 @@ class DiscordLogger:
             ]
 
             attachments = (
-                "\n\nAttachments:\n"
+                "Attachments:\n"
                 + "\n".join(
                     f"- {url}"
                     for url in urls
                 )
             )
 
-        return (
-            f"### "
-            f"{timestamp.strftime('%H:%M:%S %Z')}"
-            f" — "
-            f"{message.author.display_name} "
-            f"(`{message.author.name}`, "
-            f"Discord ID "
-            f"`{message.author.id}`)\n\n"
-            f"{content}"
-            f"{attachments}\n\n"
-            "---\n\n"
+        sent_by = self.format_user(
+            message.author
         )
 
-    def append(
+        reply_to = await self.format_reply_to(
+            message
+        )
+
+        return (
+            f"Date: {timestamp.strftime('%H:%M:%S %Z')}\n"
+            f"Sent-By: {sent_by}\n"
+            f"Reply-To: {reply_to}\n\n"
+            f"{content}\n\n"
+            f"{attachments}"
+            "---\n"
+        )
+
+    async def append(
         self,
         message: discord.Message,
     ) -> Path:
@@ -123,7 +195,7 @@ class DiscordLogger:
             "%Y-%m-%d"
         )
 
-        formatted = self.format_message(
+        formatted = await self.format_message(
             message,
             timestamp,
         )

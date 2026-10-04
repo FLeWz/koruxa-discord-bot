@@ -82,7 +82,7 @@ class DiscordEventHandler:
             return
 
         try:
-            path = self.logger.append(
+            path = await self.logger.append(
                 message
             )
 
