@@ -49,7 +49,7 @@ class Config:
 
             openwebui_knowledge_id=os.getenv(
                 "OPENWEBUI_KNOWLEDGE_ID",
-                "9e950084-7c30-4683-8861-7ba2b2740150",
+                "e90f8d0c-9be7-4902-b31e-a58fe97e925c",
             ),
 
             openwebui_knowledge_name=os.getenv(

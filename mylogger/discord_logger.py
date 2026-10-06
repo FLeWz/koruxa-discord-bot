@@ -1,4 +1,3 @@
-import re
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -25,48 +24,7 @@ class DiscordLogger:
             self.timezone
         )
 
-    @staticmethod
-    def safe_username(
-        username: str,
-    ) -> str:
-        result = re.sub(
-            r'[<>:"/\\|?*\x00-\x1f]',
-            "_",
-            username,
-        ).strip()
-
-        return result or "unknown"
-
-    def user_directory(
-        self,
-        user: discord.abc.User,
-    ) -> Path:
-        username = self.safe_username(
-            user.name
-        )
-
-        path = self.root / (
-            f"{user.id} {username}"
-        )
-
-        path.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        return path
-
-    def user_daily_path(
-        self,
-        user: discord.abc.User,
-        date_string: str,
-    ) -> Path:
-        return (
-            self.user_directory(user)
-            / f"{date_string}.md"
-        )
-
-    def all_users_daily_path(
+    def daily_path(
         self,
         date_string: str,
     ) -> Path:
@@ -79,10 +37,7 @@ class DiscordLogger:
         user: discord.abc.User,
     ) -> str:
         return (
-            f"{user.display_name} "
-            f"(`{user.name}`, "
-            f"Discord ID "
-            f"`{user.id}`)"
+            f"{user.display_name} ({user.name}, {user.id})"
         )
 
     async def get_replied_message(
@@ -122,7 +77,7 @@ class DiscordLogger:
         reference = message.reference
 
         if reference is None:
-            return "None"
+            return None
 
         replied_message = await self.get_replied_message(
             message
@@ -152,7 +107,7 @@ class DiscordLogger:
             or "(no text content)"
         )
 
-        attachments = ""
+        attachments = None
 
         if message.attachments:
             urls = [
@@ -162,10 +117,20 @@ class DiscordLogger:
             ]
 
             attachments = (
-                "Attachments:\n"
-                + "\n".join(
+                "\n".join(
                     f"- {url}"
                     for url in urls
+                )
+            )
+
+        stickers = None
+
+        if message.stickers:
+            stickers = (
+                "\n".join(
+                    f"- {sticker.url}"
+                    for sticker
+                    in message.stickers
                 )
             )
 
@@ -177,20 +142,40 @@ class DiscordLogger:
             message
         )
 
-        return (
+        msg = (
             f"Date: {timestamp.strftime('%H:%M:%S %Z')}\n"
             f"Sent-By: {sent_by}\n"
-            f"Reply-To: {reply_to}\n\n"
-            f"{content}\n\n"
-            f"{attachments}"
+        )
+
+        if reply_to is not None:
+            msg += (
+                f"Reply-To: {reply_to}\n"
+            )
+
+        if attachments is not None:
+            msg += (
+                f"Attachments:\n{attachments}\n"
+            )
+
+        if stickers is not None:
+            msg += (
+                f"Stickers:\n"
+                f"{stickers}\n"
+            )
+
+        msg += (
+            f"\n{content}\n"
             "---\n"
         )
+
+        return msg
 
     async def append(
         self,
         message: discord.Message,
     ) -> Path:
         timestamp = self.now()
+
         date_string = timestamp.strftime(
             "%Y-%m-%d"
         )
@@ -200,39 +185,12 @@ class DiscordLogger:
             timestamp,
         )
 
-        user_path = self.user_daily_path(
-            message.author,
-            date_string,
+        path = self.daily_path(
+            date_string
         )
 
-        if not user_path.exists():
-            user_path.write_text(
-                (
-                    f"# Discord messages — "
-                    f"{date_string}\n\n"
-                    f"Discord user: "
-                    f"**{message.author.display_name}**\n"
-                    f"Discord ID: "
-                    f"`{message.author.id}`\n\n"
-                    "---\n\n"
-                ),
-                encoding="utf-8",
-            )
-
-        with user_path.open(
-            "a",
-            encoding="utf-8",
-        ) as file:
-            file.write(formatted)
-
-        aggregate_path = (
-            self.all_users_daily_path(
-                date_string
-            )
-        )
-
-        if not aggregate_path.exists():
-            aggregate_path.write_text(
+        if not path.exists():
+            path.write_text(
                 (
                     f"# All Discord messages — "
                     f"{date_string}\n\n"
@@ -241,43 +199,15 @@ class DiscordLogger:
                 encoding="utf-8",
             )
 
-        with aggregate_path.open(
+        with path.open(
             "a",
             encoding="utf-8",
         ) as file:
             file.write(formatted)
 
-        return user_path
+        return path
 
-    def get_old_user_logs(self):
-        today = self.now().date()
-
-        for directory in self.root.iterdir():
-            if not directory.is_dir():
-                continue
-
-            parsed = self.parse_user_directory(
-                directory.name
-            )
-
-            if parsed is None:
-                continue
-
-            user_id, username = parsed
-
-            for path in directory.glob("*.md"):
-                try:
-                    date = datetime.strptime(
-                        path.stem,
-                        "%Y-%m-%d",
-                    ).date()
-                except ValueError:
-                    continue
-
-                if date < today:
-                    yield user_id, username, path
-
-    def get_old_aggregate_logs(self):
+    def get_old_logs(self):
         today = self.now().date()
 
         for path in self.root.glob("*.md"):
@@ -291,21 +221,4 @@ class DiscordLogger:
 
             if date < today:
                 yield path
-
-    @staticmethod
-    def parse_user_directory(
-        directory_name: str,
-    ) -> tuple[int, str] | None:
-        match = re.match(
-            r"^(\d+)(?:\s+(.*))?$",
-            directory_name,
-        )
-
-        if not match:
-            return None
-
-        return (
-            int(match.group(1)),
-            match.group(2) or "unknown",
-        )
 

@@ -25,35 +25,13 @@ class DailyLogScheduler:
             timeout=timeout
         ) as session:
 
-            for (
-                user_id,
-                username,
-                path,
-            ) in self.logger.get_old_user_logs():
-
-                try:
-                    await self.knowledge.upload_user_log(
-                        session,
-                        user_id,
-                        username,
-                        path,
-                    )
-
-                except Exception as exc:
-                    print(
-                        f"Failed to upload "
-                        f"{path}: "
-                        f"{type(exc).__name__}: "
-                        f"{exc}"
-                    )
-
             for path in (
-                self.logger.get_old_aggregate_logs()
+                self.logger.get_old_logs()
             ):
                 try:
                     await (
                         self.knowledge
-                        .upload_all_users_log(
+                        .upload_daily_log(
                             session,
                             path,
                         )

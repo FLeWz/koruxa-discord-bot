@@ -93,9 +93,6 @@ class KoruxaBot:
                 knowledge_id=(
                     config.openwebui_knowledge_id
                 ),
-                mapping_file=(
-                    config.discord_directory_map_file
-                ),
             )
         )
 
