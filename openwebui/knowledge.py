@@ -28,6 +28,15 @@ class KnowledgeDirectoryManager:
             file_path,
         )
 
+        # Only reached when the upload succeeded (_upload raises on failure).
+        try:
+            file_path.unlink()
+            print(f"Removed {file_path}")
+        except OSError as exc:
+            print(
+                f"Could not remove {file_path}: {exc}"
+            )
+
     async def _upload(
         self,
         session: aiohttp.ClientSession,
