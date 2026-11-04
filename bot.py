@@ -9,6 +9,10 @@ from mydiscord.messaging import (
     DiscordMessageService,
 )
 
+from mydiscord.reaction_roles import (
+    ReactionRoleService,
+)
+
 from mylogger.discord_logger import DiscordLogger
 
 from openwebui.chat import (
@@ -20,6 +24,8 @@ from openwebui.client import (
 from openwebui.knowledge import (
     KnowledgeDirectoryManager,
 )
+
+from storage.json_store import JsonStore
 
 from services.daily_scheduler import (
     DailyLogScheduler,
@@ -141,10 +147,18 @@ class KoruxaBot:
         # Commands
         # ----------------------------------------------------
 
+        self.reaction_roles = ReactionRoleService(
+            bot=self.bot,
+            store=JsonStore(
+                config.reaction_roles_file
+            ),
+        )
+
         self.commands = DiscordCommands(
             bot=self.bot,
             chat_store=self.chat_store,
             events=self.events,
+            reaction_roles=self.reaction_roles,
         )
 
         # ----------------------------------------------------
@@ -157,6 +171,16 @@ class KoruxaBot:
 
         self.bot.event(
             self.events.on_message
+        )
+
+        self.bot.add_listener(
+            self.reaction_roles.on_raw_reaction_add,
+            "on_raw_reaction_add",
+        )
+
+        self.bot.add_listener(
+            self.reaction_roles.on_raw_reaction_remove,
+            "on_raw_reaction_remove",
         )
 
     def run(self):

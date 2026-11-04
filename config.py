@@ -29,6 +29,8 @@ class Config:
     discord_log_dir: str
     discord_directory_map_file: str
 
+    reaction_roles_file: str
+
     @classmethod
     def from_environment(cls) -> "Config":
         return cls(
@@ -103,6 +105,11 @@ class Config:
             discord_directory_map_file=os.getenv(
                 "DISCORD_DIRECTORY_MAP_FILE",
                 "discord_directory_ids.json",
+            ),
+
+            reaction_roles_file=os.getenv(
+                "REACTION_ROLES_FILE",
+                "reaction_roles.json",
             ),
         )
 

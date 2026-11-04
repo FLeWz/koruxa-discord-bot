@@ -4,3 +4,4 @@ discord_directory_ids.json
 venv/
 __pycache__/
 discord_logs/
+reaction_roles.json
