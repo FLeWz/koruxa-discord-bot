@@ -155,7 +155,12 @@ class DiscordEventHandler:
             message.author
         )
 
+        channel = self.logger.format_channel(
+            message.channel
+        )
+
         query = (
+            f"Channel: {channel}\n"
             f"User: {user}\n"
             f"Content: {prompt}"
         )

@@ -40,6 +40,15 @@ class DiscordLogger:
             f"{user.display_name} ({user.name}, {user.id})"
         )
 
+    @staticmethod
+    def format_channel(
+        channel: discord.abc.Snowflake,
+    ) -> str:
+        # DM channels have no name.
+        name = getattr(channel, "name", None) or "DM"
+
+        return f"{name} ({channel.id})"
+
     async def get_replied_message(
         self,
         message: discord.Message,
@@ -142,13 +151,8 @@ class DiscordLogger:
             message
         )
 
-        # DM channels have no name.
-        channel_name = (
-            getattr(message.channel, "name", None)
-            or "DM"
-        )
-        channel = (
-            f"{channel_name} ({message.channel.id})"
+        channel = self.format_channel(
+            message.channel
         )
 
         msg = (
