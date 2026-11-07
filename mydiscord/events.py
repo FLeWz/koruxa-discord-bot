@@ -146,6 +146,37 @@ class DiscordEventHandler:
             for role in roles
         )
 
+    def _build_query(
+        self,
+        message: discord.Message,
+        prompt: str,
+    ) -> str:
+        user = self.logger.format_user(
+            message.author
+        )
+
+        query = (
+            f"User: {user}\n"
+            f"Content: {prompt}"
+        )
+
+        if message.attachments:
+            urls = "\n".join(
+                f"- {attachment.url}"
+                for attachment
+                in message.attachments
+            )
+            query += f"\nAttachments:\n{urls}"
+
+        if message.stickers:
+            urls = "\n".join(
+                f"- {sticker.url}"
+                for sticker in message.stickers
+            )
+            query += f"\nStickers:\n{urls}"
+
+        return query
+
     async def _process_model_request(
         self,
         message: discord.Message,
@@ -165,10 +196,9 @@ class DiscordEventHandler:
         self.current_task = (
             asyncio.create_task(
                 self.chat_service.ask(
-                    (
-                        "User: "
-                        f"{self.logger.format_user(message.author)}\n"
-                        f"Content: {prompt}"
+                    self._build_query(
+                        message,
+                        prompt,
                     ),
                     message.author,
                 )
