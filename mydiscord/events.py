@@ -165,7 +165,11 @@ class DiscordEventHandler:
         self.current_task = (
             asyncio.create_task(
                 self.chat_service.ask(
-                    prompt,
+                    (
+                        "User: "
+                        f"{self.logger.format_user(message.author)}\n"
+                        f"Content: {prompt}"
+                    ),
                     message.author,
                 )
             )
