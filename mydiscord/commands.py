@@ -44,7 +44,7 @@ class DiscordCommands:
         @self.bot.command(name="reactionroles")
         @commands.guild_only()
         @commands.has_permissions(
-            manage_roles=True,
+            administrator=True,
         )
         @commands.bot_has_permissions(
             manage_roles=True,
