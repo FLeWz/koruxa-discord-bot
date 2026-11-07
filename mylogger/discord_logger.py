@@ -142,8 +142,18 @@ class DiscordLogger:
             message
         )
 
+        # DM channels have no name.
+        channel_name = (
+            getattr(message.channel, "name", None)
+            or "DM"
+        )
+        channel = (
+            f"{channel_name} ({message.channel.id})"
+        )
+
         msg = (
             f"Date: {timestamp.strftime('%H:%M:%S %Z')}\n"
+            f"Channel: {channel}\n"
             f"Sent-By: {sent_by}\n"
         )
 
