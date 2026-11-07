@@ -31,6 +31,8 @@ class Config:
 
     reaction_roles_file: str
 
+    allowed_role_id: int | None
+
     @classmethod
     def from_environment(cls) -> "Config":
         return cls(
@@ -110,6 +112,12 @@ class Config:
             reaction_roles_file=os.getenv(
                 "REACTION_ROLES_FILE",
                 "reaction_roles.json",
+            ),
+
+            allowed_role_id=(
+                int(os.environ["ALLOWED_ROLE_ID"])
+                if os.getenv("ALLOWED_ROLE_ID")
+                else None
             ),
         )
 

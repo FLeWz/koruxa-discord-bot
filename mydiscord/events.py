@@ -23,7 +23,9 @@ class DiscordEventHandler:
         logger: DiscordLogger,
         messaging: DiscordMessageService,
         scheduler: DailyLogScheduler,
+        allowed_role_id: int | None = None,
     ):
+        self.allowed_role_id = allowed_role_id
         self.bot = bot
         self.chat_service = chat_service
         self.chat_store = chat_store
@@ -108,6 +110,14 @@ class DiscordEventHandler:
         if not prompt:
             return
 
+        if not self._is_permitted(message.author):
+            await message.channel.send(
+                f"{message.author.mention} "
+                "You are not permitted to "
+                "use this bot."
+            )
+            return
+
         if self.model_lock.locked():
             await message.channel.send(
                 "Another query is currently "
@@ -120,6 +130,21 @@ class DiscordEventHandler:
                 message,
                 prompt,
             )
+
+    def _is_permitted(
+        self,
+        author: discord.User | discord.Member,
+    ) -> bool:
+        if self.allowed_role_id is None:
+            return True
+
+        # DM authors are plain Users without roles.
+        roles = getattr(author, "roles", [])
+
+        return any(
+            role.id == self.allowed_role_id
+            for role in roles
+        )
 
     async def _process_model_request(
         self,

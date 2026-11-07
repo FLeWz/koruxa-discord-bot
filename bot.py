@@ -140,6 +140,9 @@ class KoruxaBot:
                 logger=self.logger,
                 messaging=self.messaging,
                 scheduler=self.scheduler,
+                allowed_role_id=(
+                    config.allowed_role_id
+                ),
             )
         )
 
