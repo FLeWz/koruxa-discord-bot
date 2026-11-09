@@ -165,6 +165,22 @@ class DiscordEventHandler:
             f"Content: {prompt}"
         )
 
+        reply = (
+            message.reference.resolved
+            if message.reference
+            else None
+        )
+
+        # resolved can be None or DeletedReferencedMessage.
+        if isinstance(reply, discord.Message):
+            reply_user = self.logger.format_user(
+                reply.author
+            )
+            query += (
+                f"\nReplyUser: {reply_user}"
+                f"\nReplyContent: {reply.content}"
+            )
+
         if message.attachments:
             urls = "\n".join(
                 f"- {attachment.url}"
